@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+  
+<mapper namespace="BoardMapper">
+	<!-- 글쓰기 -->
+	<insert id="writing" parameterType="bvo">
+		insert into board(title, writer, content, img_file) values(#{title}, #{writer}, #{content}, #{img_file})
+	</insert>
+	<!-- 게시글 목록 -->
+	<select id="list" parameterType="pgvo" resultType="bvo">
+		select b.*, count(c.cmt_bno) cmtCount from board b left join comment c
+		on b.bno = c.cmt_bno
+		<include refid="search"></include>
+		group by b.bno order by bno desc limit #{pageStart}, #{qty}
+	</select>
+	<!-- 게시글 수 -->
+	<select id="cnt" parameterType="pgvo" resultType="int">
+		select count(bno) from board
+		<include refid="search"></include>
+	</select>
+	<!-- 조회수 -->
+	<update id="hit" parameterType="int">
+		update board set hit = hit+1 where bno = #{bno}
+	</update>
+	<!-- 게시글 상세정보 -->
+	<select id="detail" parameterType="int" resultType="bvo">
+		select b.*, count(c.cmt_bno) cmtCount from board b left join comment c
+		on b.bno = c.cmt_bno where b.bno = #{bno}
+		group by b.bno
+	</select>
+	<!-- 게시글 수정 -->
+	<update id="update" parameterType="bvo">
+		update board set title = #{title}, content = #{content}, img_file = #{img_file}, moddate = now()
+		where bno = #{bno}
+	</update>
+	<!-- 삭제할 fileName 얻기 -->
+	<select id="fileName" parameterType="int" resultType="String">
+		select img_file from board where bno = #{bno}
+	</select>
+	<!-- 게스글 삭제 -->
+	<delete id="del" parameterType="int">
+		delete from board where bno = #{bno}
+	</delete>
+	<!-- 로그인 id의 작성글 -->
+	<select id="loginList" parameterType="mvo" resultType="bvo">
+		select * from board where writer = #{id} order by bno desc;
+	</select>
+	
+	
+	<!-- 동적 쿼리 작성 -->
+	<sql id="search">
+		<if test="type != null">
+			<trim prefix="WHERE" prefixOverrides="OR">
+				<foreach collection="typeToArray" item="type">
+					<trim prefix="OR">
+						<choose>
+							<when test="type == 't'.toString()">
+								title like concat('%',#{keyword},'%')
+							</when>
+							<when test="type == 'w'.toString()">
+								writer like concat('%',#{keyword},'%')
+							</when>
+							<when test="type == 'c'.toString()">
+								content like concat('%',#{keyword},'%')
+							</when>
+						</choose>	
+					</trim>
+				</foreach>
+			</trim>
+		</if>
+	</sql>
+	
+</mapper>
